@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Calificaciones</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <div class="container-calif">
+        <div class="header-calif">
+            <div>
+                <h1> Calificaciones</h1>
+                <p>Alumno: <strong id="alumnoNombre">Cargando...</strong></p>
+            </div>
+            <button class="logout-btn" onclick="cerrarVentana()">Cerrar</button>
+        </div>
+
+        <div class="form-calif">
+            <h3>➕ Agregar Calificación</h3>
+            <form id="formCalificacion">
+                <div class="form-group">
+                    <label> Materia</label>
+                    <input type="text" id="materia" placeholder="Ej: Matemáticas" required>
+                </div>
+                <div class="form-group">
+                    <label> Nota (0-10)</label>
+                    <input type="number" id="nota" min="0" max="10" step="0.1" required>
+                </div>
+                <button type="submit" class="btn-primary">Guardar Calificación</button>
+            </form>
+        </div>
+
+        <h3> Historial de Calificaciones</h3>
+        <div id="loading" class="loading">Cargando calificaciones...</div>
+        <table class="tabla-notas" id="tablaNotas" style="display:none">
+            <thead>
+                <tr>
+                    <th>Materia</th>
+                    <th>Nota</th>
+                    <th>Fecha</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody id="listaNotas"></tbody>
+        </table>
+
+        <div class="promedio" id="promedio" style="display:none">
+             Promedio General: <span id="promedioValor">0</span>
+        </div>
+    </div>
+
+    <script>
+        // ✅ Obtener token correctamente
+        let token = localStorage.getItem('token');
+        let alumnoId = localStorage.getItem('alumnoId');
+        let alumnoNombre = localStorage.getItem('alumnoNombre');
+        
+        // Si no hay token, intentar obtener de la sesión principal
+        if (!token) {
+            token = localStorage.getItem('tokenCalif');
+        }
+        
+        console.log('Token existe?', token ? 'Sí' : 'No');
+        console.log('Alumno ID:', alumnoId);
+        
+        // Verificar autenticación
+        if (!token) {
+            alert('No autorizado - Token no encontrado');
+            window.close();
+        }
+        
+        // Verificar rol (solo admin)
+        const rol = localStorage.getItem('rol');
+        if (rol !== 'admin') {
+            alert('Solo administradores pueden gestionar calificaciones');
+            window.close();
+        }
+        
+        document.getElementById('alumnoNombre').textContent = alumnoNombre || 'Desconocido';
+        
+        // Cargar calificaciones
+        async function cargarCalificaciones() {
+            try {
+                const response = await fetch(`/api/calificaciones/alumno/${alumnoId}`, {
+                    headers: { 
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const calificaciones = await response.json();
+                
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('tablaNotas').style.display = 'table';
+                
+                const tbody = document.getElementById('listaNotas');
+                tbody.innerHTML = '';
+                
+                if (calificaciones.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center">No hay calificaciones registradas</td><td></td></tr>';
+                    document.getElementById('promedio').style.display = 'none';
+                    return;
+                }
+                
+                let suma = 0;
+                calificaciones.forEach(calif => {
+                    const row = tbody.insertRow();
+                    const fecha = new Date(calif.fecha).toLocaleDateString('es-ES');
+                    row.innerHTML = `
+                        <td>${calif.materia}</td>
+                        <td><strong>${calif.nota}</strong></td>
+                        <td>${fecha}</td>
+                        <td>
+                            <button class="btn-editar" onclick="editarNota('${calif._id}', '${calif.materia}', ${calif.nota})">✏️ Editar</button>
+                            <button class="btn-eliminar" onclick="eliminarNota('${calif._id}')">🗑️ Eliminar</button>
+                        </td>
+                    `;
+                    suma += calif.nota;
+                });
+                
+                const promedio = (suma / calificaciones.length).toFixed(1);
+                document.getElementById('promedioValor').textContent = promedio;
+                document.getElementById('promedio').style.display = 'block';
+                
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('loading').innerHTML = `❌ Error: ${error.message}`;
+            }
+        }
+        
+        // Agregar calificación
+        document.getElementById('formCalificacion').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const materia = document.getElementById('materia').value;
+            const nota = parseFloat(document.getElementById('nota').value);
+            
+            if (nota < 0 || nota > 10) {
+                alert('La nota debe estar entre 0 y 10');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/calificaciones', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        alumnoId: alumnoId,
+                        materia: materia,
+                        nota: nota
+                    })
+                });
+                
+                if (response.ok) {
+                    alert('✅ Calificación agregada correctamente');
+                    document.getElementById('materia').value = '';
+                    document.getElementById('nota').value = '';
+                    cargarCalificaciones();
+                } else {
+                    const error = await response.json();
+                    alert('❌ Error: ' + (error.mensaje || 'Error desconocido'));
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('❌ Error al guardar la calificación');
+            }
+        });
+        
+        // Editar nota
+        async function editarNota(id, materiaActual, notaActual) {
+            const nuevaMateria = prompt('Editar materia:', materiaActual);
+            const nuevaNota = parseFloat(prompt('Editar nota (0-10):', notaActual));
+            
+            if (nuevaMateria && !isNaN(nuevaNota)) {
+                if (nuevaNota < 0 || nuevaNota > 10) {
+                    alert('La nota debe estar entre 0 y 10');
+                    return;
+                }
+                
+                try {
+                    const response = await fetch(`/api/calificaciones/${id}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify({
+                            materia: nuevaMateria,
+                            nota: nuevaNota
+                        })
+                    });
+                    
+                    if (response.ok) {
+                        alert('✅ Calificación actualizada');
+                        cargarCalificaciones();
+                    } else {
+                        alert('❌ Error al actualizar');
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                }
+            }
+        }
+        
+        // Eliminar nota
+        async function eliminarNota(id) {
+            if (confirm('¿Estás seguro de eliminar esta calificación?')) {
+                try {
+                    const response = await fetch(`/api/calificaciones/${id}`, {
+                        method: 'DELETE',
+                        headers: { 
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
+                    
+                    if (response.ok) {
+                        alert('✅ Calificación eliminada');
+                        cargarCalificaciones();
+                    } else {
+                        alert('❌ Error al eliminar');
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                }
+            }
+        }
+        
+        function cerrarVentana() {
+            window.close();
+        }
+        
+        // Cargar calificaciones
+        cargarCalificaciones();
+    </script>
+</body>
+</html>

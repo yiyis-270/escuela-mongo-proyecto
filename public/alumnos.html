@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mis Calificaciones</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div>
+                <h1> Mis Calificaciones</h1>
+                <p><strong>Rol:</strong> <span id="userRol">alumno</span></p>
+            </div>
+            <div>
+                <span class="user-info"> <span id="userName"></span></span>
+                <button class="logout-btn" onclick="cerrarSesion()">Cerrar Sesión</button>
+            </div>
+        </div>
+
+        <h2 class="section-title"> Mis Datos</h2>
+        
+        <div id="loading" class="loading">Cargando mis datos...</div>
+        <div id="error" class="error" style="display:none"></div>
+        
+        <div id="datosAlumno" style="display:none; background: white; padding: 20px; border-radius: 10px; margin-bottom: 30px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+            <p><strong> Correo:</strong> <span id="alumnoEmail"></span></p>
+            <p><strong> Carrera:</strong> <span id="alumnoCarrera"></span></p>
+            <p><strong> Semestre:</strong> <span id="alumnoSemestre"></span></p>
+        </div>
+
+        <h2 class="section-title"> Mis Calificaciones</h2>
+        
+        <div class="table-wrapper">
+            <table id="calificacionesTable" style="display:none">
+                <thead>
+                    <tr>
+                        <th>Materia</th>
+                        <th>Nota</th>
+                        <th>Fecha</th>
+                        <th>Estado</th>
+                    </tr>
+                </thead>
+                <tbody id="calificacionesList"></tbody>
+            </table>
+        </div>
+
+        <div class="promedio" id="promedio" style="display:none">
+             Mi Promedio General: <span id="promedioValor">0</span>
+        </div>
+    </div>
+
+    <script>
+        const token = localStorage.getItem('token');
+        const rol = localStorage.getItem('rol');
+        
+        //  REDIRECCIONES CORRECTAS
+        if (!token) {
+            window.location.href = '/login.html';
+        }
+        
+        if (rol === 'admin') {
+            window.location.href = '/admin.html';
+        }
+        
+        const nombre = localStorage.getItem('nombre');
+        const email = localStorage.getItem('email');
+        
+        document.getElementById('userRol').textContent = rol || 'alumno';
+        document.getElementById('userName').textContent = nombre || 'Alumno';
+        
+        function cerrarSesion() {
+            localStorage.clear();
+            window.location.href = '/login.html';
+        }
+        
+        async function obtenerMisDatos() {
+            try {
+                const response = await fetch('/api/alumnos', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                const alumnos = await response.json();
+                const miAlumno = alumnos.find(a => a.email === email);
+                
+                if (miAlumno) {
+                    document.getElementById('alumnoEmail').textContent = miAlumno.email;
+                    document.getElementById('alumnoCarrera').textContent = miAlumno.carrera || 'No especificada';
+                    document.getElementById('alumnoSemestre').textContent = miAlumno.semestre || 'No especificado';
+                    document.getElementById('datosAlumno').style.display = 'block';
+                    document.getElementById('loading').style.display = 'none';
+                    return miAlumno._id;
+                }
+                document.getElementById('loading').innerHTML = '⚠️ No se encontraron tus datos. Contacta al administrador.';
+                return null;
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('loading').innerHTML = '❌ Error al cargar datos';
+                return null;
+            }
+        }
+        
+        async function cargarMisCalificaciones(alumnoId) {
+            try {
+                const response = await fetch(`/api/calificaciones/alumno/${alumnoId}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                const calificaciones = await response.json();
+                document.getElementById('calificacionesTable').style.display = 'table';
+                
+                const tbody = document.getElementById('calificacionesList');
+                tbody.innerHTML = '';
+                
+                if (calificaciones.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center">No hay calificaciones registradas aún</td></tr>';
+                    document.getElementById('promedio').style.display = 'none';
+                    return;
+                }
+                
+                let suma = 0;
+                calificaciones.forEach(calif => {
+                    const row = tbody.insertRow();
+                    const fecha = new Date(calif.fecha).toLocaleDateString('es-ES');
+                    let estado = '';
+                    let color = '';
+                    
+                    if (calif.nota >= 7) {
+                        estado = '✅ Aprobado';
+                        color = 'green';
+                    } else if (calif.nota >= 5) {
+                        estado = '⚠️ Suficiente';
+                        color = 'orange';
+                    } else {
+                        estado = '❌ Reprobado';
+                        color = 'red';
+                    }
+                    
+                    row.innerHTML = `
+                        <td>${calif.materia}</td>
+                        <td><strong style="color:${color}">${calif.nota}</strong></td>
+                        <td>${fecha}</td>
+                        <td>${estado}</td>
+                    `;
+                    suma += calif.nota;
+                });
+                
+                const promedio = (suma / calificaciones.length).toFixed(1);
+                document.getElementById('promedioValor').textContent = promedio;
+                document.getElementById('promedio').style.display = 'block';
+                
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+        
+        async function iniciar() {
+            const alumnoId = await obtenerMisDatos();
+            if (alumnoId) {
+                await cargarMisCalificaciones(alumnoId);
+            }
+        }
+        
+        iniciar();
+    </script>
+</body>
+</html>
