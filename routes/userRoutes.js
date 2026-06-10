@@ -35,6 +35,11 @@ router.post("/registrar", verificarToken, esAdmin, async (req, res) => {
             return res.status(400).json({ mensaje: "Todos los campos son requeridos: nombre, email, password, rol" });
         }
 
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            return res.status(400).json({ mensaje: "El formato de correo electrónico no es válido" });
+        }
+
         // Validar roles permitidos
         const rolesValidos = ['admin', 'profesor', 'alumno'];
         if (!rolesValidos.includes(rol)) {

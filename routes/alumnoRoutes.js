@@ -53,6 +53,11 @@ router.post("/", verificarToken, async (req, res) => {
             });
         }
 
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            return res.status(400).json({ mensaje: "El formato de correo electrónico para el alumno no es válido" });
+        }
+
         const nuevoAlumno = new Alumno({
             nombre,
             email,      // ✅ Cambiado de "correo" a "email"

@@ -9,6 +9,12 @@ const router = express.Router();
 router.post("/register", async (req, res) => {
   try {
     const { nombre, email, password, rol } = req.body;
+    
+    // Validación de formato de email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ mensaje: "El formato de correo electrónico no es válido" });
+    }
 
     const existe = await User.findOne({ email });
 
@@ -41,6 +47,10 @@ router.post("/register", async (req, res) => {
 router.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({ mensaje: "Correo y contraseña son requeridos" });
+    }
 
     const usuario = await User.findOne({ email });
 

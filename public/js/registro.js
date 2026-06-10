@@ -8,6 +8,15 @@ document.getElementById('registro-form').addEventListener('submit', async (e) =>
     const mensajeDiv = document.getElementById('mensaje');
     const loader = document.getElementById('loader');
 
+    // Validación frontend
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+        mensajeDiv.textContent = "❌ Por favor, ingresa un correo electrónico válido";
+        mensajeDiv.className = "message error";
+        mensajeDiv.style.display = "block";
+        return;
+    }
+
     try {
         loader.style.display = 'flex';
         const response = await fetch('/api/auth/register', {

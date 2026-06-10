@@ -92,6 +92,12 @@ async function agregarAlumno() {
     const carrera = document.getElementById("carrera").value;
     const semestre = document.getElementById("semestre").value;
 
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(correo)) {
+        alert("❌ El formato del correo electrónico es inválido");
+        return;
+    }
+
     try {
         loader.style.display = "flex";
         await fetch("/api/alumnos", {
