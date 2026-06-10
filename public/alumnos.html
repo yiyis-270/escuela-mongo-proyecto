@@ -5,19 +5,103 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mis Calificaciones</title>
     <link rel="stylesheet" href="/css/style.css">
+    <style>
+        /* Consistencia con el diseño profesional del Admin */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.2rem 2.5rem;
+            background: #ffffff;
+            border-bottom: 1px solid #e2e8f0;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            margin-bottom: 2rem;
+            border-radius: 0 0 15px 15px;
+            color: #1a202c; /* Sobrescribir el blanco del gradiente global si es necesario */
+        }
+        .brand-info h1 {
+            font-size: 1.5rem;
+            color: #1a202c;
+            margin: 0;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .brand-info p {
+            font-size: 0.85rem;
+            color: #718096;
+            margin: 4px 0 0 35px;
+        }
+        .user-nav-container {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+            background: #f8fafc;
+            padding: 8px 16px;
+            border-radius: 50px;
+            border: 1px solid #edf2f7;
+        }
+        .user-profile-info {
+            text-align: right;
+            line-height: 1.4;
+        }
+        .user-name-label {
+            display: block;
+            font-weight: 600;
+            color: #2d3748;
+            font-size: 0.95rem;
+            white-space: nowrap;
+        }
+        .user-role-badge {
+            font-size: 0.7rem;
+            color: #48bb78; /* Color verde para alumnos */
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .avatar-circle {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            box-shadow: 0 2px 5px rgba(72, 187, 120, 0.3);
+        }
+        .btn-logout-minimal {
+            background: none;
+            border: none;
+            color: #e53e3e;
+            font-weight: 700;
+            font-size: 0.85rem;
+            cursor: pointer;
+            padding: 5px 10px;
+            transition: all 0.2s;
+            border-left: 1px solid #cbd5e0;
+            margin-left: 5px;
+        }
+    </style>
 </head>
 <body>
     <div class="container">
-        <div class="header">
-            <div>
-                <h1> Mis Calificaciones</h1>
-                <p><strong>Rol:</strong> <span id="userRol">alumno</span></p>
+        <header class="header">
+            <div class="brand-info">
+                <h1><span>🎓</span> Mi Portal</h1>
+                <p>Consulta de Calificaciones y Datos</p>
             </div>
-            <div>
-                <span class="user-info"> <span id="userName"></span></span>
-                <button class="logout-btn" onclick="cerrarSesion()">Cerrar Sesión</button>
+            <div class="user-nav-container">
+                <div class="user-profile-info">
+                    <span id="userName" class="user-name-label">Cargando...</span>
+                    <span class="user-role-badge" id="userRol">Alumno</span>
+                </div>
+                <div id="userAvatar" class="avatar-circle">U</div>
+                <button class="btn-logout-minimal" onclick="cerrarSesion()">Cerrar Sesión</button>
             </div>
-        </div>
+        </header>
 
         <h2 class="section-title"> Mis Datos</h2>
         
@@ -67,8 +151,10 @@
         const nombre = localStorage.getItem('nombre');
         const email = localStorage.getItem('email');
         
-        document.getElementById('userRol').textContent = rol || 'alumno';
-        document.getElementById('userName').textContent = nombre || 'Alumno';
+        if (nombre) {
+            document.getElementById('userName').textContent = nombre;
+            document.getElementById('userAvatar').textContent = nombre.charAt(0).toUpperCase();
+        }
         
         function cerrarSesion() {
             localStorage.clear();

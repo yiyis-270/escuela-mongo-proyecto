@@ -5,19 +5,106 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Panel de Administrador</title>
     <link rel="stylesheet" href="/css/style.css">
+    <style>
+        /* Mejoras de estilo profesional para el Header */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.2rem 2.5rem;
+            background: #ffffff;
+            border-bottom: 1px solid #e2e8f0;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            margin-bottom: 2rem;
+            border-radius: 0 0 15px 15px;
+        }
+        .brand-info h1 {
+            font-size: 1.5rem;
+            color: #1a202c;
+            margin: 0;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .brand-info p {
+            font-size: 0.85rem;
+            color: #718096;
+            margin: 4px 0 0 35px;
+        }
+        .user-nav-container {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+            background: #f8fafc;
+            padding: 8px 16px;
+            border-radius: 50px;
+            border: 1px solid #edf2f7;
+        }
+        .user-profile-info {
+            text-align: right;
+            line-height: 1.4;
+        }
+        .user-name-label {
+            display: block;
+            font-weight: 600;
+            color: #2d3748;
+            font-size: 0.95rem;
+            white-space: nowrap;
+        }
+        .user-role-badge {
+            font-size: 0.7rem;
+            color: #667eea;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .avatar-circle {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            box-shadow: 0 2px 5px rgba(102, 126, 234, 0.3);
+        }
+        .btn-logout-minimal {
+            background: none;
+            border: none;
+            color: #e53e3e;
+            font-weight: 700;
+            font-size: 0.85rem;
+            cursor: pointer;
+            padding: 5px 10px;
+            transition: all 0.2s;
+            border-left: 1px solid #cbd5e0;
+            margin-left: 5px;
+        }
+        .btn-logout-minimal:hover {
+            color: #c53030;
+            opacity: 0.8;
+        }
+    </style>
 </head>
 <body>
     <div class="container">
-        <div class="header">
-            <div>
-                <h1> Panel de Administrador</h1>
-                <p><strong>Rol:</strong> admin</p>
+        <header class="header">
+            <div class="brand-info">
+                <h1><span>🛡️</span> Panel de Control</h1>
+                <p>Gestión Centralizada de Alumnos</p>
             </div>
-            <div>
-                <span class="user-info">👤 <span id="userName"></span></span>
-                <button class="logout-btn" onclick="cerrarSesion()">Cerrar Sesión</button>
+            <div class="user-nav-container">
+                <div class="user-profile-info">
+                    <span id="userName" class="user-name-label">Admin</span>
+                    <span class="user-role-badge">Administrador</span>
+                </div>
+                <div id="userAvatar" class="avatar-circle">A</div>
+                <button class="btn-logout-minimal" onclick="cerrarSesion()">Cerrar Sesión</button>
             </div>
-        </div>
+        </header>
 
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; padding: 0 40px; margin-bottom: 30px;">
             <div style="background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 20px; border-radius: 10px;">
@@ -69,13 +156,18 @@
         const token = localStorage.getItem('token');
         const rol = localStorage.getItem('rol');
         const nombre = localStorage.getItem('nombre');
+        let editandoId = null;
+        let listaAlumnos = [];
 
         // ✅ Si no es admin, redirigir a alumnos.html
         if (!token || rol !== 'admin') {
             window.location.href = '/alumnos.html';
         }
 
-        document.getElementById('userName').textContent = nombre || 'Admin';
+        if (nombre) {
+            document.getElementById('userName').textContent = nombre;
+            document.getElementById('userAvatar').textContent = nombre.charAt(0).toUpperCase();
+        }
 
         function cerrarSesion() {
             localStorage.clear();
@@ -88,6 +180,12 @@
 
         function ocultarFormulario() {
             document.getElementById('formulario').style.display = 'none';
+            editandoId = null;
+            // Restaurar textos originales
+            document.querySelector('#formulario h3').textContent = 'Nuevo Alumno';
+            const btnGuardar = document.querySelector('#formulario button.btn-edit');
+            if (btnGuardar) btnGuardar.textContent = 'Guardar';
+            
             document.getElementById('nombre').value = '';
             document.getElementById('email').value = '';
             document.getElementById('carrera').value = '';
@@ -95,35 +193,54 @@
         }
 
         async function crearAlumno() {
-            const nuevoAlumno = {
-                nombre: document.getElementById('nombre').value,
-                email: document.getElementById('email').value,
-                carrera: document.getElementById('carrera').value,
-                semestre: parseInt(document.getElementById('semestre').value)
+            const nombreVal = document.getElementById('nombre').value.trim();
+            const emailVal = document.getElementById('email').value.trim();
+            const carreraVal = document.getElementById('carrera').value.trim();
+            const semestreVal = document.getElementById('semestre').value;
+
+            // Validaciones de frontend
+            if (!nombreVal || !emailVal || !carreraVal || !semestreVal) {
+                alert('❌ Por favor, completa todos los campos');
+                return;
+            }
+
+            if (parseInt(semestreVal) < 1 || parseInt(semestreVal) > 12) {
+                alert('❌ El semestre debe estar entre 1 y 12');
+                return;
+            }
+
+            const alumnoData = {
+                nombre: nombreVal,
+                email: emailVal,
+                carrera: carreraVal,
+                semestre: parseInt(semestreVal)
             };
             
+            const url = editandoId ? `/api/alumnos/${editandoId}` : '/api/alumnos';
+            const metodo = editandoId ? 'PUT' : 'POST';
+
             try {
-                const response = await fetch('/api/alumnos', {
-                    method: 'POST',
+                const response = await fetch(url, {
+                    method: metodo,
                     headers: {
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${token}`
                     },
-                    body: JSON.stringify(nuevoAlumno)
+                    body: JSON.stringify(alumnoData)
                 });
                 
                 if (response.ok) {
-                    alert('✅ Alumno creado correctamente');
+                    alert(editandoId ? '✅ Alumno actualizado con éxito' : '✅ Alumno creado con éxito');
                     ocultarFormulario();
                     cargarAlumnos();
                     cargarEstadisticas();
                 } else {
                     const error = await response.json();
-                    alert('❌ Error: ' + error.mensaje);
+                    alert('❌ Error del servidor: ' + (error.mensaje || 'Error desconocido'));
                 }
             } catch (error) {
                 console.error('Error:', error);
-                alert('❌ Error al crear alumno');
+                alert('❌ Error al procesar la solicitud');
             }
         }
 
@@ -145,6 +262,7 @@
                         alert('❌ Error al eliminar');
                     }
                 } catch (error) {
+                    alert('❌ Error de conexión al eliminar');
                     console.error('Error:', error);
                 }
             }
@@ -159,6 +277,7 @@
                 if (!response.ok) throw new Error('Error al cargar alumnos');
 
                 const alumnos = await response.json();
+                listaAlumnos = alumnos; // Guardar la lista para poder buscar al editar
                 
                 document.getElementById('loading').style.display = 'none';
                 document.getElementById('alumnosTable').style.display = 'table';
@@ -194,7 +313,20 @@
         }
 
         function editarAlumno(id) {
-            alert('Función de editar - Próximamente');
+            const alumno = listaAlumnos.find(a => a._id === id);
+            if (!alumno) return;
+
+            editandoId = id;
+            document.getElementById('nombre').value = alumno.nombre;
+            document.getElementById('email').value = alumno.email;
+            document.getElementById('carrera').value = alumno.carrera;
+            document.getElementById('semestre').value = alumno.semestre;
+
+            // Cambiar textos para modo edición
+            document.querySelector('#formulario h3').textContent = 'Editar Alumno';
+            document.querySelector('#formulario button.btn-edit').textContent = 'Actualizar Alumno';
+            mostrarFormulario();
+            window.scrollTo(0, 0); // Subir para ver el formulario
         }
 
         function verCalificaciones(alumnoId, alumnoNombre) {

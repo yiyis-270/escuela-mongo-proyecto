@@ -5,16 +5,87 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gestión de Calificaciones</title>
     <link rel="stylesheet" href="/css/style.css">
+    <style>
+        /* Cabecera profesional para la ventana emergente */
+        .header-calif {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 2rem;
+            background: #ffffff;
+            border-bottom: 2px solid #edf2f7;
+            margin-bottom: 1.5rem;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            color: #2d3748;
+        }
+        .student-badge {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .student-icon {
+            width: 35px;
+            height: 35px;
+            background: #ebf8ff;
+            color: #3182ce;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+        }
+        .student-info-text h1 {
+            font-size: 1.1rem;
+            margin: 0;
+            color: #1a202c;
+        }
+        .student-info-text p {
+            font-size: 0.8rem;
+            margin: 0;
+            color: #718096;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .btn-close-window {
+            background: #f7fafc;
+            border: 1px solid #e2e8f0;
+            padding: 6px 15px;
+            border-radius: 6px;
+            color: #4a5568;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-close-window:hover {
+            background: #edf2f7;
+            color: #e53e3e;
+        }
+    </style>
+    <style>
+        /* Estilo para el nombre del alumno en el header de calificaciones */
+        .student-info-text .student-name-display {
+            display: block; /* Asegura que tome su propia línea */
+            font-size: 1.1rem; /* Mantiene un tamaño similar al h1 original */
+            font-weight: 700; /* Hace el texto más prominente */
+            color: #1a202c; /* Mantiene el color original */
+            margin: 0; /* Elimina cualquier margen predeterminado */
+            white-space: nowrap; /* Asegura que el nombre quede en una sola línea */
+        }
+    </style>
 </head>
 <body>
     <div class="container-calif">
-        <div class="header-calif">
-            <div>
-                <h1> Calificaciones</h1>
-                <p>Alumno: <strong id="alumnoNombre">Cargando...</strong></p>
+        <header class="header-calif">
+            <div class="student-badge">
+                <div class="student-icon">👤</div>
+                <div class="student-info-text">
+                    <p style="margin-bottom: 2px;">Expediente de Calificaciones</p>
+                    <span id="alumnoNombre" class="student-name-display">Cargando...</span>
+                </div>
             </div>
-            <button class="logout-btn" onclick="cerrarVentana()">Cerrar</button>
-        </div>
+            <button class="btn-close-window" onclick="cerrarVentana()">✕ Cerrar</button>
+        </header>
 
         <div class="form-calif">
             <h3>➕ Agregar Calificación</h3>

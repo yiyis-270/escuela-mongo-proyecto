@@ -1,6 +1,7 @@
 
 const token = localStorage.getItem("token");
 const rol = localStorage.getItem("rol");
+let editandoId = null; // Variable para rastrear si estamos editando
 
 if (!token) {
     window.location.href = "login.html";
@@ -56,7 +57,10 @@ async function cargarAlumnos() {
 
         if (rol === "admin") {
             acciones = `
-                <button onclick="eliminarAlumno('${alumno._id}')">
+                <button class="btn btn-edit" onclick="prepararEdicion('${alumno._id}', '${alumno.nombre}', '${alumno.email}', '${alumno.carrera}', ${alumno.semestre})">
+                    Editar
+                </button>
+                <button class="btn btn-delete" onclick="eliminarAlumno('${alumno._id}')">
                     Eliminar
                 </button>
             `;
@@ -81,6 +85,21 @@ async function cargarAlumnos() {
     }
 }
 
+// ======================
+// 📌 PREPARAR EDICIÓN
+// ======================
+function prepararEdicion(id, nombre, email, carrera, semestre) {
+    editandoId = id;
+    document.getElementById("nombre").value = nombre;
+    document.getElementById("correo").value = email;
+    document.getElementById("carrera").value = carrera;
+    document.getElementById("semestre").value = semestre;
+
+    // Cambiar el texto del botón para indicar que estamos editando
+    const btnForm = document.querySelector("#formularioAlumno button");
+    btnForm.innerText = "Actualizar Alumno";
+    window.scrollTo(0, 0); // Desplazar hacia arriba para ver el formulario
+}
 
 // ======================
 // 📌 POST ALUMNO
@@ -92,16 +111,31 @@ async function agregarAlumno() {
     const carrera = document.getElementById("carrera").value;
     const semestre = document.getElementById("semestre").value;
 
+    // Validaciones de datos
+    if (!nombre.trim() || !correo.trim() || !carrera.trim() || !semestre) {
+        alert("❌ Todos los campos son obligatorios");
+        return;
+    }
+
+    if (isNaN(semestre) || semestre < 1 || semestre > 12) {
+        alert("❌ El semestre debe ser un número entre 1 y 12");
+        return;
+    }
+
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(correo)) {
         alert("❌ El formato del correo electrónico es inválido");
         return;
     }
 
+    // Determinar si es una creación o una actualización
+    const url = editandoId ? `/api/alumnos/${editandoId}` : "/api/alumnos";
+    const metodo = editandoId ? "PUT" : "POST";
+
     try {
         loader.style.display = "flex";
-        await fetch("/api/alumnos", {
-            method: "POST",
+        const respuesta = await fetch(url, {
+            method: metodo,
             headers: {
                 "Content-Type": "application/json",
                 "Authorization": "Bearer " + token
@@ -113,8 +147,18 @@ async function agregarAlumno() {
                 semestre
             })
         });
+
+        if (respuesta.ok) {
+            editandoId = null; // Resetear el ID de edición
+            alert(metodo === "PUT" ? "✅ Alumno actualizado con éxito" : "✅ Alumno creado con éxito");
+            location.reload();
+        } else {
+            const error = await respuesta.json();
+            alert("❌ Error del servidor: " + (error.mensaje || "No se pudo procesar la solicitud"));
+        }
     } catch (error) {
-        console.error(error);
+        console.error("Error en la petición:", error);
+        alert("❌ Error de conexión: No se pudo comunicar con el servidor");
     } finally {
         loader.style.display = "none";
     }
@@ -128,18 +172,27 @@ async function agregarAlumno() {
 // ======================
 async function eliminarAlumno(id) {
     try {
+        if (!confirm("¿Estás seguro de que deseas eliminar este alumno?")) return;
+
         loader.style.display = "flex";
-        await fetch(`/api/alumnos/${id}`, {
+        const respuesta = await fetch(`/api/alumnos/${id}`, {
             method: "DELETE",
             headers: {
                 "Authorization": "Bearer " + token
             }
         });
+
+        if (respuesta.ok) {
+            alert("✅ Alumno eliminado correctamente");
+            location.reload();
+        } else {
+            const error = await respuesta.json();
+            alert("❌ Error al eliminar: " + error.mensaje);
+        }
     } catch (error) {
         console.error(error);
+        alert("❌ Error de red al intentar eliminar");
     } finally {
         loader.style.display = "none";
     }
-
-    location.reload();
 }
