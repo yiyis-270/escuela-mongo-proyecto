@@ -7,6 +7,10 @@
     <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
+    <div id="loader" class="loader-overlay">
+        <div class="spinner"></div>
+    </div>
+
     <div class="login-container">
         <div class="login-header">
             <h1>📚 EscuelaMongo</h1>
@@ -26,7 +30,7 @@
             </form>
             <div id="message" class="message"></div>
             <div class="demo-link">
-                
+                ¿No tienes cuenta? <a href="registro.html">Registrar Usuario</a>
             </div>
         </div>
     </div>
@@ -43,6 +47,7 @@
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
             const messageDiv = document.getElementById('message');
+            const loader = document.getElementById('loader');
             
             messageDiv.className = 'message';
             messageDiv.style.display = 'none';
@@ -55,6 +60,7 @@
             }
             
             try {
+                loader.style.display = 'flex';
                 const response = await fetch('/api/auth/login', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -84,6 +90,8 @@
                 messageDiv.textContent = '❌ ' + error.message;
                 messageDiv.className = 'message error';
                 messageDiv.style.display = 'block';
+            } finally {
+                loader.style.display = 'none';
             }
         });
     </script>
